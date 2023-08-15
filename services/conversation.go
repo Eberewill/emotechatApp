@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/Eberewill/emotechat/initializers"
@@ -9,17 +10,43 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func FetchConversationsBetweenUsers(userID, partnerID uint) ([]models.Conversation, error) {
-	var conversations []models.Conversation
+// Create a struct to represent the paginated conversation response
+type PaginatedConversations struct {
+	Conversations []models.Conversation `json:"conversations"`
+	TotalPages    int                   `json:"total_pages"`
+	CurrentPage   int                   `json:"current_page"`
+	PageSize      int                   `json:"page_size"`
+}
+
+func FetchConversationsBetweenUsers(userID, partnerID uint, page, pageSize int) (*PaginatedConversations, error) {
+	var result PaginatedConversations
+	offset := (page - 1) * pageSize
+
+	var totalCount int64
+	if err := initializers.DB.Model(&models.Conversation{}).
+		Where("(receiver_id = ? AND sender_id = ?) OR (receiver_id = ? AND sender_id = ?)", userID, partnerID, partnerID, userID).
+		Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	totalPages := int(math.Ceil(float64(totalCount) / float64(pageSize)))
+
 	if err := initializers.DB.
 		Where("(receiver_id = ? AND sender_id = ?) OR (receiver_id = ? AND sender_id = ?)", userID, partnerID, partnerID, userID).
 		Order("timestamp DESC").
+		Offset(offset).
+		Limit(pageSize).
 		Preload("Receiver").
 		Preload("Sender").
-		Find(&conversations).Error; err != nil {
+		Find(&result.Conversations).Error; err != nil {
 		return nil, err
 	}
-	return conversations, nil
+
+	result.TotalPages = totalPages
+	result.CurrentPage = page
+	result.PageSize = pageSize
+
+	return &result, nil
 }
 
 func UpdateConversation(userID, partnerID uint, lastMessage string, timestamp time.Time) error {
@@ -104,8 +131,11 @@ func TestFetchConversations(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request payload"})
 	}
 
+	page := 1
+	pageSize := 10
+
 	// Fetch conversations
-	conversations, err := FetchConversationsBetweenUsers(loggedInUserID, req.PartnerID)
+	conversations, err := FetchConversationsBetweenUsers(loggedInUserID, req.PartnerID, page, pageSize)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch conversations"})
 	}
