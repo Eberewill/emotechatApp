@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Register(c *fiber.Ctx) error {
+func RegisterUser(c *fiber.Ctx) error {
 	var data map[string]string
 
 	if err := c.BodyParser(&data); err != nil {
@@ -42,7 +42,7 @@ func Register(c *fiber.Ctx) error {
 	return c.JSON(user)
 }
 
-func Login(c *fiber.Ctx) error {
+func LoginUser(c *fiber.Ctx) error {
 	var data map[string]string
 
 	if err := c.BodyParser(&data); err != nil {
@@ -95,7 +95,7 @@ func Login(c *fiber.Ctx) error {
 	})
 }
 
-func Logout(c *fiber.Ctx) error {
+func LogoutUser(c *fiber.Ctx) error {
 
 	// get the session from the authorization header
 	sessionHeader := c.Get("Authorization")
@@ -112,7 +112,7 @@ func Logout(c *fiber.Ctx) error {
 	})
 }
 
-func Validate(c *fiber.Ctx) error {
+func ValidateUser(c *fiber.Ctx) error {
 	// Retrieve the userID from context locals
 	userID := c.Locals("userID").(string)
 

@@ -8,9 +8,11 @@ import (
 
 func Setup(app *fiber.App) {
 
-	app.Post("/api/auth/register", services.Register)
-	app.Post("/api/auth/login", services.Login)
-	app.Post("/api/auth/logout", middleware.RequireAuth, services.Logout)
-	app.Get("/api/auth/validate", middleware.RequireAuth, services.Validate)
+	app.Post("/api/auth/register", services.RegisterUser)
+	app.Post("/api/auth/login", services.LoginUser)
+	app.Post("/api/auth/logout", middleware.RequireAuth, services.LogoutUser)
+	app.Get("/api/auth/validate", middleware.RequireAuth, services.ValidateUser)
+	app.Get("/api/test/message", services.TestSaveMessage)
+	app.Get("/api/test/message/all", services.TestFetchConversations)
 
 }
