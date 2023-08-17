@@ -7,16 +7,23 @@ import (
 )
 
 func Setup(app *fiber.App) {
+	api := app.Group("/api")
 
-	app.Post("/api/auth/register", services.RegisterUser)
-	app.Post("/api/auth/login", services.LoginUser)
+	auth := api.Group("/auth")
+	auth.Post("/register", services.RegisterUser)
+	auth.Post("/login", services.LoginUser)
+	auth.Post("/logout", middleware.RequireAuth, services.LogoutUser)
+	auth.Get("/validate", middleware.RequireAuth, services.ValidateUser)
 
-	app.Get("/api/profile/users", middleware.RequireAuth, services.GetAllUsers)
-	app.Post("/api/auth/logout", middleware.RequireAuth, services.LogoutUser)
+	profile := api.Group("/profile", middleware.RequireAuth)
+	profile.Get("/users", services.GetAllUsers)
 
-	app.Get("/api/auth/validate", middleware.RequireAuth, services.ValidateUser)
-	app.Get("/api/conversations", middleware.RequireAuth, services.FetchConversations)
-	//app.Get("/api/test/message", services.TestSaveMessage)
-	//app.Get("/api/test/message/all", services.TestFetchConversations)
+	conversations := api.Group("/conversations", middleware.RequireAuth)
+	conversations.Get("/", services.FetchConversations)
+	// conversations.Get("/test/message", services.TestSaveMessage)
+	// conversations.Get("/test/message/all", services.TestFetchConversations)
 
+	password := api.Group("/password")
+	password.Post("/reset-request", services.RequestPasswordReset)
+	password.Post("/reset", services.ResetPassword)
 }
